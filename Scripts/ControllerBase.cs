@@ -23,38 +23,34 @@ public class ControllerBase : MonoBehaviour
 
     public float moveSpeed = 1.0f;
     public float sprintMultiplier = 1.5f;
+    [Tooltip("Setting this value sets the maximum Sprint Time.")]
     public float calculatedSprintTime = 1.5f;
+    [Tooltip("Setting this value sets the maximum Stamina Recharge Time.")]
     public float calculatedSprintRechargeTime = 1.0f;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
+    public Team playerTeam;
 
     private void FixedUpdate()
     {
-        // Sprint depleting stamina
+        // Lerps stamina value > 0 to 0 by fractions of a given length of time.
+        // Initiates stamina recharging on stamina depletion.
         if (isSprinting && !isRechargingSprint)
         {
             float timeSinceStarted = Time.time - sprintStartTime;
             float percentComplete = timeSinceStarted / calculatedSprintTime;
             stamina = Mathf.Lerp(sprintStartValue, 0.0f, percentComplete);
-            if (percentComplete >= 1.0f) { isSprinting = false; }
+            if (percentComplete >= 1.0f) { isSprinting = false; RechargeSprint(); }
         }
-        // Recharging stamina
+        // Lerps stamina value > 0 to MAX_STAMINA by fractions of a length of time.
         else if (!isSprinting && isRechargingSprint)
         {
             float timeSinceStarted = Time.time - sprintRechargeStartTime;
             float percentComplete = timeSinceStarted / calculatedSprintRechargeTime;
             stamina = Mathf.Lerp(sprintRechargeStartValue, MAX_STAMINA, percentComplete);
             if (percentComplete >= 1.0f) { isRechargingSprint = false; }
+        }
+        if (!FindObjectOfType<MatchManager>().playBoundary.Contains(transform.position))
+        {
+            FindObjectOfType<MatchManager>().OutOfBounds(this);
         }
         ActionControlUpdate();
     }
@@ -65,6 +61,9 @@ public class ControllerBase : MonoBehaviour
         if (inPossession || isSprinting) { canAttemptSteal = false; }
     }
 
+    /// <summary>
+    /// Calculates and initiates stamina recharge.
+    /// </summary>
     protected void RechargeSprint()
     {
         if(stamina >= MAX_STAMINA) { stamina = MAX_STAMINA; return; }
@@ -74,6 +73,9 @@ public class ControllerBase : MonoBehaviour
         isRechargingSprint = true;
     }
 
+    /// <summary>
+    /// Calculates and intitiates sprinting with stamina drain.
+    /// </summary>
     protected void Sprint()
     {
         if(stamina < MAX_STAMINA / 2.0f) { return; }
@@ -83,9 +85,19 @@ public class ControllerBase : MonoBehaviour
         sprintStartValue = stamina;
         isSprinting = true;
     }
+    
 
     private void OnDrawGizmos()
     {
-        Handles.Label(transform.position, "Stamina: " + stamina.ToString());
+        GUIStyle teamAStyle = new GUIStyle();
+        teamAStyle.normal.textColor = Color.red;
+        teamAStyle.alignment = TextAnchor.MiddleCenter;
+        Handles.Label(transform.position + (Vector3.up * 0.2f), "Name: " + gameObject.name, teamAStyle);
+        Handles.Label(transform.position, "Team: " + playerTeam.name, teamAStyle);
+        Handles.Label(transform.position + (Vector3.down * 0.2f), "Stamina: " + stamina.ToString(), teamAStyle);
+
+        //GUIStyle teamBStyle = new GUIStyle();
+        //teamBStyle.normal.textColor = Color.red;
+        //teamBStyle.alignment = TextAnchor.MiddleCenter;
     }
 }
